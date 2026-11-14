@@ -1,0 +1,28 @@
+# Build output and tooling
+.gradle/
+build/
+app/build/
+.idea/
+.kotlin/
+.DS_Store
+*.log
+__pycache__/
+node_modules/
+dist/
+target/
+
+# Local and private files: never commit these
+local.properties
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+keystore.properties
+google-services.json
+*.apk
+*.aab
+
+# Calendar exports can contain private data
+*.ics
