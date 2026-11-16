@@ -1,34 +1,39 @@
 # Class Buzz
 
-An Android app that buzzes your wrist (or phone) a few minutes before each class on a Google Calendar.
+The calendar sync built into my Huawei Watch 3 didn't show my Google Calendar, even with sync turned on, so I wrote
+this Android app. It downloads the calendar by itself and buzzes your wrist (or phone) 5 minutes before each class.
 
-It downloads a calendar feed (`.ics`) by itself, picks out your classes, and sets an alarm for 5 minutes before
-each one. When the alarm goes off it vibrates, posts a full-screen notification and shows a countdown ring with the
-subject, topic, teacher and time. It was built for a Huawei Watch 3 (HarmonyOS 3, which runs Android 10 apps), but it
-uses only standard Android APIs and has no dependencies besides the Android SDK.
+The Watch 3 runs HarmonyOS 3, which runs Android 10 apps, and Class Buzz uses only standard Android APIs with no
+dependencies besides the Android SDK. This is a personal project and it isn't polished. It is not affiliated with,
+endorsed by or sponsored by Huawei or Google; "Huawei", "Watch 3" and "Google Calendar" are trademarks of their owners
+and are used here only to say what the app works with.
 
-This is a personal project, not a polished product. It is **not affiliated with, endorsed by or sponsored by Huawei
-or Google**; "Huawei", "Watch 3" and "Google Calendar" are trademarks of their owners and are used here only to say
-what the app works with.
+## Downloading the calendar
 
-## What it does
+The app downloads your calendar's iCal link (`.ics`) over HTTPS every hour, and when you open it if the last
+download is over 10 minutes old. A bad, partial or non-calendar download (such as a Wi-Fi login page) never replaces
+the saved schedule. After 6 hours without a download it warns you with a notification, once per stale stretch and
+only between 07:00 and 21:00.
 
-- Downloads your calendar's iCal link over HTTPS every hour, and when you open the app if the last download is more
-  than 10 minutes old. A bad, partial or non-calendar download (for example a Wi-Fi login page) never replaces the
-  saved schedule.
-- Looks 7 days ahead. Skips all-day events, cancelled events, and titles that contain "holiday" or "cancel".
-- Keeps only your classes: events with no batch tag, plus events whose batch tag matches one of the batch names you
-  configure (see [Choose your batches](#choose-your-batches)).
-- Sets one alarm-clock alarm per class, 5 minutes before it starts. A class that is already inside that window and
-  has not buzzed yet buzzes right away. Each class buzzes once.
-- The buzz is an alarm-class vibration plus a high-importance alarm-category notification with a full-screen
-  countdown ring (minutes left, subject colour, topic, teacher and times). On the Watch 3 it came through Do Not Disturb.
-- The main screen shows the next class as the ring, the rest of that day below it, and when the calendar was last
-  updated.
-- Warns with a notification if the calendar has not downloaded for 6 hours, between 07:00 and 21:00, once per stale
-  stretch.
-- Puts the alarms back after a restart or an app update. Some Huawei firmware never delivers the boot broadcast, so the
-  app also notices a new boot the next time anything in it runs (opening the app is enough).
+It looks 7 days ahead and skips all-day events, cancelled events and titles containing "holiday" or "cancel". It
+keeps only your classes: events with no batch tag, plus events whose tag matches a batch name you configure (see
+[Choose your batches](#choose-your-batches)).
+
+## The buzz
+
+Each class gets one alarm-clock alarm, 5 minutes before it starts, and buzzes once. A class already inside that
+window that hasn't buzzed yet buzzes right away. The buzz is an alarm-class vibration plus a high-importance
+alarm-category notification with a full-screen countdown ring (minutes left, subject colour, topic, teacher and
+times). The main screen shows the next class as the ring, the rest of the day below it, and when the calendar was
+last updated.
+
+I started with plain exact alarms. Off the charger the watch held them until the screen woke, and a test buzz came
+93 s late. Alarm-clock alarms are the one kind power saving has to deliver on time, and with them the buzz came 0 s
+late, through Do Not Disturb.
+
+Alarms are put back after a restart or an app update. Some Huawei firmware never delivers the boot broadcast, so the
+app also checks the watch's boot count and re-arms everything the next time any part of it runs (opening the app is
+enough).
 
 ## Calendar title format
 
@@ -38,20 +43,20 @@ Class Buzz reads event titles written like this (fields separated by `;`):
 ABC;Chem-Ionic Equilibrium;Batch-Batch A
 ```
 
-teacher initials (2 to 4 capital letters, several separated by `/` or `;`), then subject and topic, then the batch
-tag. Subjects it recognises are Chemistry, Physics and Maths (`Chem`/`Phy`/`Math` prefixes, each with its own
-colour); anything else is shown as a plain class. Titles that do not fit are kept as plain text, never dropped.
-`ClassTitleTest` lists the title shapes it handles.
+That's teacher initials (2 to 4 capital letters, several separated by `/` or `;`), subject and topic, then the batch
+tag. It recognises Chemistry, Physics and Maths (`Chem`/`Phy`/`Math` prefixes, each with its own colour); anything
+else shows as a plain class. Titles that don't fit are kept as plain text. `ClassTitleTest` lists the title shapes it
+handles.
 
 ## Limitations
 
-- **Recurring events are not expanded.** The parser reads each `VEVENT` once and ignores `RRULE`, so a repeating
-  event appears only on its first date. It works for calendars where each class is its own event.
+- Recurring events are not expanded. The parser reads each `VEVENT` once and ignores `RRULE`, so a repeating event
+  appears only on its first date. That's fine for calendars where each class is its own event.
 - Only Google Calendar iCal links are accepted: `https://calendar.google.com/calendar/ical/...ics`.
 - If the calendar has no `X-WR-TIMEZONE`, times without a zone are read as `Asia/Kolkata`.
 - There is no settings screen. The calendar link is set over `adb`, and the batch names are a constant in the code.
 - Subjects and the title format are hard-coded for one kind of coaching-class calendar.
-- Tested only on a Huawei Watch 3 and with JVM unit tests. It has not been run on other devices or Wear OS.
+- I've only tested it on a Huawei Watch 3 and with JVM unit tests. It hasn't been run on other devices or on Wear OS.
 
 ## Requirements
 
@@ -73,14 +78,15 @@ The APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Run the unit 
 
 ### Choose your batches
 
-Edit `ALLOWED_BATCHES` in [`Config.kt`](app/src/main/java/com/saif/classbuzz/Config.kt) to the batch names that appear
+Set `ALLOWED_BATCHES` in [`Config.kt`](app/src/main/java/com/saif/classbuzz/Config.kt) to the batch names that appear
 after `Batch-` in your event titles, then build. The defaults (`Batch A`, `Batch B`) are placeholders. Matching ignores
 case and punctuation and checks whether the event's tag contains one of your names.
 
 ## Install and set the calendar link
 
 Install the APK with `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Sideloading to a Huawei Watch 3 needs
-developer options and `adb` over Wi-Fi turned on, and the exact steps depend on the firmware; check Huawei's documentation.
+developer options and `adb` over Wi-Fi turned on; the exact steps depend on the firmware, so check Huawei's
+documentation.
 
 Then send your calendar's iCal address to the app:
 
@@ -88,11 +94,11 @@ Then send your calendar's iCal address to the app:
 adb shell am start -n com.saif.classbuzz/.ui.MainActivity --es calendar_url "<your iCal address ending in .ics>"
 ```
 
-**Treat that address like a password.** Google's "secret address in iCal format" lets anyone who has it read the
-calendar. Class Buzz keeps it only in its own private app storage and logs just the last 12 characters. Never put it
-in a commit, an issue or a screenshot.
+Treat that address like a password: Google's "secret address in iCal format" lets anyone who has it read the
+calendar. Class Buzz keeps it only in its private app storage and logs just the last 12 characters. Never put it in a
+commit, an issue or a screenshot.
 
-Handy commands (debug builds):
+Useful commands for debug builds:
 
 ```bash
 adb shell am start -n com.saif.classbuzz/.ui.MainActivity --es cmd refresh                  # download now
@@ -110,13 +116,13 @@ adb shell run-as com.saif.classbuzz cat shared_prefs/class_buzz_log.xml         
 | `RECEIVE_BOOT_COMPLETED` | Put alarms back after a restart or app update |
 | `ACCESS_NOTIFICATION_POLICY` | Used to log the Do Not Disturb state when a buzz fires |
 
-The app has no accounts, no analytics and talks only to the calendar address you give it.
+The app has no accounts or analytics, and it only talks to the calendar address you give it.
 
 ## Tech
 
-Kotlin, plain Android views (no Compose, no third-party libraries), `AlarmManager` alarm-clock alarms, `JobScheduler`
-for the download, and a small hand-written iCal parser. Unit tests use JUnit 4. The pure logic (title parsing, event
-selection, alarm planning, refresh rules, text formatting) is free of Android classes so it runs on the JVM.
+Kotlin, plain Android views (no Compose or third-party libraries), `AlarmManager` alarm-clock alarms, `JobScheduler`
+for the download, a small hand-written iCal parser, and JUnit 4 for the tests. The pure logic (title parsing, event
+selection, alarm planning, refresh rules, text formatting) has no Android classes, so it runs on the JVM.
 
 ## Licence
 
